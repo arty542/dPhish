@@ -1,0 +1,45 @@
+# Virtual environment
+venv/
+env/
+
+# Byte-compiled / cached files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+
+# Django migrations
+/phishing/migrations/
+/dphish_project/__pycache__/
+/phishing/__pycache__/
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Logs
+*.log
+logs/
+debug.log
+
+# Static and media files (if applicable)
+staticfiles/
+media/
+
+# IDE / Editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python dependency files
+Pipfile
+Pipfile.lock
+
+# Compiled files
+*.so
+*.o
+*.a
