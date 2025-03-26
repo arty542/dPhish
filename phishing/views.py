@@ -1,24 +1,70 @@
+# from django.http import JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+# from django.core.mail import send_mail
+# import json
+
+# @csrf_exempt  # Disable CSRF protection for testing (NOT recommended in production)
+# def send_email_api(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)  # Get email from frontend
+#             email = data.get("email", None)
+#             if not email:
+#                 return JsonResponse({"error": "Email is required"}, status=400)
+
+#             # Send email
+#             subject = "Phishing Test Email"
+#             message = "Click the link below:\nhttps://www.youtube.com"
+#             sender = "your-email@gmail.com"
+
+#             send_mail(subject, message, sender, [email])
+
+#             return JsonResponse({"message": "Email sent successfully!"})
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+
+#     return JsonResponse({"error": "Invalid request"}, status=400)
+import json
 from django.http import JsonResponse
-from .utils import send_phishing_email
-from django.http import HttpResponse
-from django.shortcuts import redirect
-from .models import EmailTracking
-from django.shortcuts import render
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.csrf import csrf_exempt
+from .models import EmailTracking  # Import your model
 
-def send_test_email(request):
-    response = send_phishing_email()  
-    return JsonResponse({"message": response})
+@csrf_exempt  # Allow API calls from frontend (only for development)
+def send_email_api(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)  # Get email from frontend
+            email = data.get("email", None)
+            
+            if not email:
+                return JsonResponse({"error": "Email is required"}, status=400)
 
-def track_open(request, tracking_id):
-    EmailTracking.objects.filter(id=tracking_id).update(opened=True)
-    # Return a 1x1 transparent pixel
-    pixel = b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00\xFF\xFF\xFF\x21\xF9\x04\x01\x00\x00\x00\x00\x2C\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x4C\x01\x00\x3B'
-    return HttpResponse(pixel, content_type="image/gif")
+            # Store email tracking entry in database
+            tracking_entry = EmailTracking.objects.create(user_email=email)
+
+            # Send email with new tracking link
+            subject = "Phishing Test Email"
+            tracking_link = f"http://127.0.0.1:8000/track-click/{tracking_entry.id}/"  # Updated link
+            message = f"Click the link below:\n{tracking_link}"
+            sender = "your-email@gmail.com"
+
+            send_mail(subject, message, sender, [email])
+
+            return JsonResponse({"message": "Email sent and tracked successfully!", "tracking_link": tracking_link})
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 def track_click(request, tracking_id):
-    """ Track when a phishing link is clicked """
-    EmailTracking.objects.filter(id=tracking_id).update(clicked=True)
-    return redirect("https://www.youtube.com/")  # Change this to your actual page
+    tracking_entry = get_object_or_404(EmailTracking, id=tracking_id)
+    
+    # Mark as clicked
+    tracking_entry.clicked_link = True
+    tracking_entry.save()
 
-def fake_login_page(request):
-    return render(request, "fake_login.html")
+    # Redirect the user somewhere (e.g., a phishing page or an awareness page)
+    return redirect("https://your-awareness-page.com")  # Change this to your real phishing page
