@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -53,10 +54,27 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React frontend
+]
+
+# If the above doesn't work, allow all origins temporarily (NOT recommended in production)
+CORS_ALLOW_ALL_ORIGINS = True  # Use only for debugging
+
+# Allow frontend to send credentials (optional, if needed)
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow all HTTP methods (GET, POST, OPTIONS, etc.)
+CORS_ALLOW_METHODS = ["GET", "POST", "OPTIONS", "PUT", "DELETE"]
+
+# Allow all headers
+CORS_ALLOW_HEADERS = ["*"]
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
+CSRF_COOKIE_SECURE = False  # Set to True in production
+
 
 ROOT_URLCONF = 'dphish_project.urls'
 
