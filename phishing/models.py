@@ -1,17 +1,10 @@
 from django.db import models
 
-# Create your models here.
+class EmailTracking(models.Model):
+    user_email = models.EmailField()
+    test_date = models.DateTimeField(auto_now_add=True)
+    clicked_link = models.BooleanField(default=False)
+    passed_test = models.BooleanField(default=False)
 
-class TargetUser(models.Model):
-    name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
-
-class PhishingEmail(models.Model):
-    subject = models.CharField(max_length=255)
-    body = models.TextField()
-    sent_to = models.ForeignKey(TargetUser, on_delete=models.CASCADE)
-
-class ClickTracking(models.Model):
-    user = models.ForeignKey(TargetUser, on_delete=models.CASCADE)
-    email = models.ForeignKey(PhishingEmail, on_delete=models.CASCADE)
-    clicked = models.BooleanField(default=False)
+    def __str__(self):
+        return self.user_email
