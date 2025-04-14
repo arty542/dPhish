@@ -1,36 +1,17 @@
-import React, { useState } from "react";
+// src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Analytics from './pages/Analytics';
 
 function App() {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-
-  const sendEmail = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/send-email/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-      setMessage(data.message || data.error);
-    } catch (error) {
-      setMessage("Failed to send email");
-    }
-  };
-
   return (
-    <div>
-      <h1>Phishing Email Sender</h1>
-      <input
-        type="email"
-        placeholder="Enter email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <button onClick={sendEmail}>Send Email</button>
-      <p>{message}</p>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/analytics" element={<Analytics />} />
+      </Routes>
+    </Router>
   );
 }
 
