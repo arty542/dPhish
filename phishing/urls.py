@@ -10,5 +10,5 @@ urlpatterns = [
     # path("track_click/<str:tracking_id>/", track_click, name="track_click"),
     # path("fake_login/", fake_login_page, name="fake_login"),
     path("api/send-email/", send_email_api, name="send_email_api"),
-    path("track-click/<int:tracking_id>/", track_click, name="track_click"),
+    path('track-click/<int:log_id>/', track_click, name='track_click'),
 ]
