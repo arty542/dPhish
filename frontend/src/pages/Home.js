@@ -1,5 +1,6 @@
 // src/pages/Home.js
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 function Home() {
     const [email, setEmail] = useState("");
@@ -31,8 +32,14 @@ function Home() {
         />
         <button onClick={sendEmail}>Send Email</button>
         <p>{message}</p>
+    
+        {/* Link to Analytics Page */}
+        <Link to="/analytics">
+          <button style={{ marginTop: '10px' }}>Go to Analytics</button>
+        </Link>
       </div>
     );
+    
 }
 
 export default Home;
