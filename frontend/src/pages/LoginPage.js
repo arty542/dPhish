@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function LoginPage() {
+function LoginPage({ onLogin }) { // Accept the onLogin prop
   const [selectedUser, setSelectedUser] = useState("");
   const navigate = useNavigate();
 
@@ -10,9 +10,11 @@ function LoginPage() {
     e.preventDefault();
 
     if (selectedUser === "admin") {
-      navigate("/admin-home");
+      onLogin("admin"); // Call onLogin to update role
+      navigate("/adminHome");
     } else if (selectedUser === "test") {
-      navigate("/test-user");
+      onLogin("user"); // Call onLogin to update role
+      navigate("/testuserpage");
     } else {
       alert("Please select a user type!");
     }

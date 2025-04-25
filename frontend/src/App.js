@@ -1,19 +1,26 @@
 // src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import AdminHome from './pages/AdminHome';
 import Analytics from './pages/Analytics';
+import TestUserPage from './pages/TestUserPage';
 
 function App() {
+  const [role, setRole] = useState(null); // 'admin' or 'user'
+
+  const handleLogin = (userRole) => {
+    setRole(userRole); // Call with 'admin' or 'user'
+  };
+
   return (
-    <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/adminHome" element={role === 'admin' ? <AdminHome /> : <Navigate to="/" />} />
+        <Route path="/analytics" element={role === 'admin' ? <Analytics /> : <Navigate to="/" />} />
+        <Route path="/testuserpage" element={role === 'user' ? <TestUserPage /> : <Navigate to="/" />} />
       </Routes>
-    </Router>
   );
 }
-
 
 export default App;
