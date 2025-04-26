@@ -1,53 +1,105 @@
 // src/pages/LoginPage.js
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-function LoginPage({ onLogin }) { // Accept the onLogin prop
-  const [selectedUser, setSelectedUser] = useState("");
+const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultRole = searchParams.get('role') === 'admin' ? 'admin' : 'user';
 
-  const handleLogin = (e) => {
+  const [role, setRole] = useState(defaultRole);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  // If you navigate here with ?role=admin or ?role=user
+  useEffect(() => {
+    setRole(defaultRole);
+  }, [defaultRole]);
+
+  const handleSubmit = (e) => {
     e.preventDefault();
+    // TODO: call your backend auth here
+    onLogin(role);
+    if (role === 'admin') {
+      navigate('/adminHome');
+      } 
+    else {
+        navigate('/dashboard');
+      }
+};
 
-    if (selectedUser === "admin") {
-      onLogin("admin"); // Call onLogin to update role
-      navigate("/adminHome");
-    } else if (selectedUser === "test") {
-      onLogin("user"); // Call onLogin to update role
-      navigate("/testuserpage");
-    } else {
-      alert("Please select a user type!");
-    }
-  };
+  const tabStyle = (active) => ({
+    padding: '10px 20px',
+    marginRight: active ? 0 : 10,
+    backgroundColor: active ? '#007BFF' : '#e0e0e0',
+    color: active ? '#fff' : '#000',
+    border: 'none',
+    cursor: 'pointer',
+    flex: 1,
+    textAlign: 'center'
+  });
 
   return (
-    <div style={{ textAlign: "center", paddingTop: "50px" }}>
-      <h2>Login Page</h2>
-      <form onSubmit={handleLogin}>
-        <label>
-          <input
-            type="radio"
-            name="userType"
-            value="admin"
-            onChange={(e) => setSelectedUser(e.target.value)}
-          />
+    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center' }}>Login</h1>
+
+      {/* Role Tabs */}
+      <div style={{ display: 'flex', marginBottom: 20 }}>
+        <button
+          style={tabStyle(role === 'user')}
+          onClick={() => setRole('user')}
+        >
+          Tester
+        </button>
+        <button
+          style={tabStyle(role === 'admin')}
+          onClick={() => setRole('admin')}
+        >
           Admin
-        </label>
-        <br />
-        <label>
+        </button>
+      </div>
+
+      {/* Login Form */}
+      <form onSubmit={handleSubmit}>
+        <label style={{ display: 'block', marginBottom: 8 }}>
+          Email
           <input
-            type="radio"
-            name="userType"
-            value="test"
-            onChange={(e) => setSelectedUser(e.target.value)}
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{ width: '100%', padding: 8, marginTop: 4 }}
           />
-          Test User
         </label>
-        <br /><br />
-        <button type="submit">Login</button>
+
+        <label style={{ display: 'block', margin: '16px 0 8px' }}>
+          Password
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{ width: '100%', padding: 8, marginTop: 4 }}
+          />
+        </label>
+
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            padding: 10,
+            backgroundColor: '#28a745',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            marginTop: 16
+          }}
+        >
+          {role === 'admin' ? 'Admin Login' : 'Tester Login'}
+        </button>
       </form>
     </div>
   );
-}
+};
 
 export default LoginPage;
