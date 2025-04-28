@@ -1,43 +1,84 @@
 // src/pages/AdminHome.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { sendEmail } from '../services/api';
 
 function AdminHome() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  // Function to handle email sending
-  const sendEmail = async () => {
+  const handleSendEmail = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/send-email/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
+      const data = await sendEmail(email);
       setMessage(data.message || data.error);
     } catch (error) {
-      setMessage("Failed to send email");
+      setMessage(error.message);
     }
   };
 
   return (
-    <div className="App">
-      <h2>Admin Home</h2>
-      <div>
+    <div style={{ maxWidth: 400, margin: '80px auto', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center' }}>Admin Home</h1>
+
+      <div style={{ marginBottom: 20 }}>
         <input
           type="email"
           placeholder="Recipient Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          style={{
+            width: '100%',
+            padding: 10,
+            marginBottom: 10,
+            border: '1px solid #ccc',
+            borderRadius: 4,
+          }}
         />
-        <button onClick={sendEmail}>Send Email</button>
-        <p>{message}</p>
+        <button
+          onClick={handleSendEmail}
+          style={{
+            width: '100%',
+            padding: 10,
+            backgroundColor: '#007BFF',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+            marginBottom: 10,
+          }}
+        >
+          Send Email
+        </button>
+        {message && (
+          <p
+            style={{
+              padding: 10,
+              backgroundColor: '#f8f9fa',
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              color: message.toLowerCase().includes('failed') ? 'red' : 'green',
+            }}
+          >
+            {message}
+          </p>
+        )}
       </div>
-      <br />
-      <button onClick={() => navigate('/analytics')}>Go to Analytics</button>
+
+      <button
+        onClick={() => navigate('/analytics')}
+        style={{
+          width: '100%',
+          padding: 10,
+          backgroundColor: '#28a745',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 4,
+          cursor: 'pointer',
+        }}
+      >
+        Go to Analytics
+      </button>
     </div>
   );
 }

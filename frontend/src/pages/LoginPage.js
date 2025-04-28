@@ -23,9 +23,6 @@ const LoginPage = ({ onLogin }) => {
     try {
       const { token, role } = await loginUser(username, password); // Get token and role from API
 
-      // Store token in localStorage
-      localStorage.setItem('token', token);
-
       // Call the onLogin callback (to manage login state)
       onLogin(role);
 
