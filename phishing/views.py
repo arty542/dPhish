@@ -2,12 +2,34 @@ import json
 from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from .models import PhishingEmail, EmailLog, EmailInteraction
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
 
+@api_view(['POST'])
+def LoginView(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
 
-@csrf_exempt  # Only for development, disable in production
+    user = authenticate(username=username, password=password)
+
+    if user is not None:
+        # Check if user is an admin or a regular user
+        role = 'admin' if user.is_superuser else 'user'
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        return Response({
+            'access_token': access_token,
+            'role': role  # Send role in the response
+        }, status=200)
+    
+    return Response({'detail': 'Invalid credentials!'}, status=401)
+
 def send_email_api(request):
     if request.method == "POST":
         try:

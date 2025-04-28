@@ -3,6 +3,7 @@ from django.urls import path
 # from .views import track_open, track_click
 # from .views import fake_login_page
 from .views import send_email_api, track_click
+from .views import LoginView
 
 urlpatterns = [
     #path("send_test_email/", send_test_email, name="send_test_email"),
@@ -11,4 +12,5 @@ urlpatterns = [
     # path("fake_login/", fake_login_page, name="fake_login"),
     path("api/send-email/", send_email_api, name="send_email_api"),
     path('track-click/<int:log_id>/', track_click, name='track_click'),
+    path('api/login/', LoginView, name='login'), 
 ]

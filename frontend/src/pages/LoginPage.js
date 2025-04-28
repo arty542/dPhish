@@ -1,6 +1,7 @@
 // src/pages/LoginPage.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { loginUser } from '../services/api'; // Import the loginUser function
 
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ const LoginPage = ({ onLogin }) => {
   const defaultRole = searchParams.get('role') === 'admin' ? 'admin' : 'user';
 
   const [role, setRole] = useState(defaultRole);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState(''); // Change email to username
   const [password, setPassword] = useState('');
 
   // If you navigate here with ?role=admin or ?role=user
@@ -16,17 +17,29 @@ const LoginPage = ({ onLogin }) => {
     setRole(defaultRole);
   }, [defaultRole]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // TODO: call your backend auth here
-    onLogin(role);
-    if (role === 'admin') {
-      navigate('/adminHome');
-      } 
-    else {
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+
+    try {
+      const { token, role } = await loginUser(username, password); // Get token and role from API
+
+      // Store token in localStorage
+      localStorage.setItem('token', token);
+
+      // Call the onLogin callback (to manage login state)
+      onLogin(role);
+
+      // Navigate based on role
+      if (role === 'admin') {
+        navigate('/adminHome');
+      } else {
         navigate('/dashboard');
       }
-};
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Invalid credentials!');
+    }
+  };
 
   const tabStyle = (active) => ({
     padding: '10px 20px',
@@ -36,7 +49,7 @@ const LoginPage = ({ onLogin }) => {
     border: 'none',
     cursor: 'pointer',
     flex: 1,
-    textAlign: 'center'
+    textAlign: 'center',
   });
 
   return (
@@ -60,14 +73,14 @@ const LoginPage = ({ onLogin }) => {
       </div>
 
       {/* Login Form */}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleLogin}>
         <label style={{ display: 'block', marginBottom: 8 }}>
-          Email
+          Username
           <input
-            type="email"
+            type="text" // Changed from email to text for username
             required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)} // Update username state
             style={{ width: '100%', padding: 8, marginTop: 4 }}
           />
         </label>
@@ -78,7 +91,7 @@ const LoginPage = ({ onLogin }) => {
             type="password"
             required
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             style={{ width: '100%', padding: 8, marginTop: 4 }}
           />
         </label>
@@ -92,7 +105,7 @@ const LoginPage = ({ onLogin }) => {
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
-            marginTop: 16
+            marginTop: 16,
           }}
         >
           {role === 'admin' ? 'Admin Login' : 'Tester Login'}
