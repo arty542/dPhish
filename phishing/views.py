@@ -99,3 +99,4 @@ def track_click(request, log_id):
     except Exception as e:
         logger.error(f"Error in track_click for Log ID {log_id}: {str(e)}")
         return redirect("https://your-awareness-page.com")  # Default redirect on error
+
