@@ -20,20 +20,24 @@ def LoginView(request):
     username = request.data.get('username')
     password = request.data.get('password')
 
+    print("Username:", username)
+    print("Password:", password)
+
     user = authenticate(username=username, password=password)
+    print("User authenticated:", user)
 
     if user is not None:
-        # Check if user is an admin or a regular user
         role = 'admin' if user.is_superuser else 'user'
-        
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
+        print("Sending token and role...")
         return Response({
             'access_token': access_token,
-            'role': role  # Send role in the response
+            'role': role
         }, status=200)
     
+    print("Invalid credentials")
     return Response({'detail': 'Invalid credentials!'}, status=401)
 
 import logging
