@@ -25,7 +25,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://dphish-frontend.onrender.com'
 ]
 
-ALLOWED_HOSTS = ['https://dphish-backend.onrender.com']
+ALLOWED_HOSTS = ['dphish-backend.onrender.com']
 
 STORAGES = {
     "default" : {
