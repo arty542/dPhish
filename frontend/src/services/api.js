@@ -1,5 +1,8 @@
 // src/api.js
-const BASE_URL = 'http://127.0.0.1:8000/api/'; // Replace with your actual backend URL
+const isDevelopment = process.env.NODE_ENV === 'development';
+const BASE_URL = isDevelopment
+  ? process.env.REACT_APP_API_URL_LOCAL
+  : process.env.REACT_APP_API_URL_DEPLOY;
 
 // Function to login the user and return the JWT token
 export const loginUser = async (username, password) => {
