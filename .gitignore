@@ -20,6 +20,7 @@ __pycache__/
 # SQLite temporary files
 *.sqlite3-wal
 *.sqlite3-shm
+db.sqlite3
 
 # Logs
 *.log
