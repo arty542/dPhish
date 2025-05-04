@@ -10,6 +10,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 def home(request):
     return JsonResponse({"message": "Welcome to dPhish backend!"})
@@ -20,29 +23,25 @@ def LoginView(request):
     username = request.data.get('username')
     password = request.data.get('password')
 
-    print("Username:", username)
-    print("Password:", password)
+    logger.info(f"Login attempt: username={username}")
 
     user = authenticate(username=username, password=password)
-    print("User authenticated:", user)
+    logger.info(f"Authenticated user: {user}")
 
     if user is not None:
         role = 'admin' if user.is_superuser else 'user'
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        print("Sending token and role...")
+        logger.info(f"Returning token for {username}, role={role}")
         return Response({
             'access_token': access_token,
             'role': role
         }, status=200)
-    
-    print("Invalid credentials")
+
+    logger.info("Login failed: invalid credentials")
     return Response({'detail': 'Invalid credentials!'}, status=401)
 
-import logging
-
-logger = logging.getLogger(__name__)
 
 @permission_classes([AllowAny])
 class SendEmailApiView(APIView):
