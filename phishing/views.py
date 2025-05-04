@@ -9,7 +9,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 
+def home(request):
+    return JsonResponse({"message": "Welcome to dPhish backend!"})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
