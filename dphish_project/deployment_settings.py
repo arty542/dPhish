@@ -24,6 +24,10 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     'https://dphish-frontend.onrender.com'
 ]
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 ALLOWED_HOSTS = ['dphish-backend.onrender.com']
 
@@ -63,3 +67,7 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
