@@ -5,7 +5,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 //                  process.env.REACT_APP_API_URL_LOCAL || 
 //                  'https://dphish-backend.onrender.com/';
 
-const BASE_URL = 'https://dphish-backend.onrender.com/';
+const BASE_URL = 'https://dphish-backend.onrender.com/api/';
 
 console.log('Base URL:', BASE_URL); // Debugging
 
