@@ -15,7 +15,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 def home(request):
-    return JsonResponse({"message": "Welcome to dPhish backend!"})
+    users = User.objects.values('id', 'username', 'email', 'is_superuser', 'is_staff')
+    return JsonResponse({"users": list(users)})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
