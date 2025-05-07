@@ -1,11 +1,11 @@
 // src/api.js
 const isDevelopment = process.env.NODE_ENV === 'development';
-// Modify your api.js to add debugging and fallbacks
+//Modify your api.js to add debugging and fallbacks
 // const BASE_URL = process.env.REACT_APP_API_URL_DEPLOY || 
-//                  process.env.REACT_APP_API_URL_LOCAL || 
-//                  'https://dphish-backend.onrender.com/';
+//                  process.env.REACT_APP_API_URL_LOCAL;
+const BASE_URL = isDevelopment ? 'http://localhost:8000/api/' : 'https://dphish-backend.onrender.com/api/';
 
-const BASE_URL = 'https://dphish-backend.onrender.com/api/';
+//const BASE_URL = 'https://dphish-backend.onrender.com/api/';
 
 console.log('Base URL:', BASE_URL); // Debugging
 
