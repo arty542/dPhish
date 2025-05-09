@@ -32,7 +32,7 @@ function App() {
           element={
             role === 'user'
               ? <Dashboard />
-              : <Navigate to="/login?role=user" replace />
+              : <Navigate to="/login" replace />
           }
         />
         <Route
@@ -40,7 +40,7 @@ function App() {
           element={
             role === 'admin'
               ? <AdminHome />
-              : <Navigate to="/login?role=admin" replace />
+              : <Navigate to="/login" replace />
           }
         />
         <Route
@@ -48,7 +48,7 @@ function App() {
           element={
             role === 'admin'
               ? <Analytics />
-              : <Navigate to="/login?role=admin" replace />
+              : <Navigate to="/login" replace />
           }
         />
 

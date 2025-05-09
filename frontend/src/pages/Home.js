@@ -11,16 +11,10 @@ const Home = () => {
       <p>Your gateway to safe, verified internships.</p>
       <div style={{ marginTop: 30 }}>
         <button
-          onClick={() => navigate('/login?role=user')}
+          onClick={() => navigate('/login')}
           style={{ padding: '10px 20px', margin: '0 10px' }}
         >
-          User Login
-        </button>
-        <button
-          onClick={() => navigate('/login?role=admin')}
-          style={{ padding: '10px 20px', margin: '0 10px' }}
-        >
-          Admin Login
+          Login
         </button>
         <button
           onClick={() => navigate('/signup')}
