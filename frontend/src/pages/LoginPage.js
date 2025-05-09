@@ -1,111 +1,88 @@
 // src/pages/LoginPage.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { loginUser } from '../services/api'; // Import the loginUser function
 
 const LoginPage = ({ onLogin }) => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const defaultRole = searchParams.get('role') === 'admin' ? 'admin' : 'user';
-
-  const [role, setRole] = useState(defaultRole);
-  const [username, setUsername] = useState(''); // Change email to username
+  const [searchParams]        = useSearchParams();
+  const role                  = searchParams.get('role') || 'user';
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError]     = useState('');
+  const navigate              = useNavigate();
 
-  // If you navigate here with ?role=admin or ?role=user
-  useEffect(() => {
-    setRole(defaultRole);
-  }, [defaultRole]);
+  const handleSubmit = e => {
+    e.preventDefault();
+    setError('');
 
-  const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent default form submission behavior
-
-    try {
-      const { token, role } = await loginUser(username, password); // Get token and role from API
-
-      // Call the onLogin callback (to manage login state)
-      onLogin(role);
-
-      // Navigate based on role
-      if (role === 'admin') {
-        navigate('/adminHome');
-      } else {
-        navigate('/dashboard');
+    if (role === 'user') {
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const match = users.find(u => u.email === email && u.password === password);
+      if (!match) {
+        setError('Invalid user credentials');
+        return;
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Invalid credentials!');
+      onLogin('user');
+      navigate('/dashboard');
+    } else if (role === 'admin') {
+      // hard-coded admin credentials
+      if (email === 'admin@interngov.pk' && password === 'Admin123!') {
+        onLogin('admin');
+        navigate('/admin');
+      } else {
+        setError('Invalid admin credentials');
+      }
     }
   };
 
-  const tabStyle = (active) => ({
-    padding: '10px 20px',
-    marginRight: active ? 0 : 10,
-    backgroundColor: active ? '#007BFF' : '#e0e0e0',
-    color: active ? '#fff' : '#000',
-    border: 'none',
-    cursor: 'pointer',
-    flex: 1,
-    textAlign: 'center',
-  });
+  useEffect(() => {
+    setError('');
+    setEmail('');
+    setPassword('');
+  }, [role]);
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Login</h1>
+    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'Arial, sans-serif' }}>
+      <h2 style={{ textAlign: 'center' }}>
+        {role === 'admin' ? 'Admin Login' : 'User Login'}
+      </h2>
 
-      {/* Role Tabs */}
-      <div style={{ display: 'flex', marginBottom: 20 }}>
-        <button
-          style={tabStyle(role === 'user')}
-          onClick={() => setRole('user')}
-        >
-          Tester
-        </button>
-        <button
-          style={tabStyle(role === 'admin')}
-          onClick={() => setRole('admin')}
-        >
-          Admin
-        </button>
-      </div>
+      {error && (
+        <div style={{ color: 'crimson', marginBottom: 12, textAlign: 'center' }}>
+          {error}
+        </div>
+      )}
 
-      {/* Login Form */}
-      <form onSubmit={handleLogin}>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Username
-          <input
-            type="text" // Changed from email to text for username
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)} // Update username state
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-
-        <label style={{ display: 'block', margin: '16px 0 8px' }}>
-          Password
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          placeholder="Email address"
+          required
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          style={{ width: '100%', padding: 8, margin: '8px 0' }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          style={{ width: '100%', padding: 8, margin: '8px 0' }}
+        />
         <button
           type="submit"
           style={{
             width: '100%',
             padding: 10,
-            backgroundColor: '#28a745',
+            marginTop: 12,
+            background: '#1976d2',
             color: '#fff',
             border: 'none',
-            cursor: 'pointer',
-            marginTop: 16,
+            borderRadius: 4,
+            cursor: 'pointer'
           }}
         >
-          {role === 'admin' ? 'Admin Login' : 'Tester Login'}
+          {role === 'admin' ? 'Login as Admin' : 'Login'}
         </button>
       </form>
     </div>
