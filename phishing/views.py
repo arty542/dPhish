@@ -12,12 +12,28 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from rest_framework import status
 import logging
+from django.db import connection
 
 logger = logging.getLogger(__name__)
 
 def home(request):
-    users = User.objects.values('id', 'username', 'email', 'is_superuser', 'is_staff')
-    return JsonResponse({"users": list(users)})
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+        tables = [row[0] for row in cursor.fetchall()]
+    
+    result = {}
+
+    for table in tables:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(f'SELECT * FROM "{table}" LIMIT 10')  # Limit for safety
+                columns = [col[0] for col in cursor.description]
+                rows = cursor.fetchall()
+                result[table] = [dict(zip(columns, row)) for row in rows]
+        except Exception as e:
+            result[table] = f"Error: {str(e)}"
+
+    return JsonResponse(result, safe=False)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -47,6 +63,7 @@ def LoginView(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
+    logger.info("Signup API hit")
     data = request.data
     username = data.get('username')
     email = data.get('email')
