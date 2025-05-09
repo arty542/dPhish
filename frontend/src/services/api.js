@@ -1,9 +1,21 @@
 // src/api.js
-const BASE_URL = 'http://127.0.0.1:8000/api/'; // Replace with your actual backend URL
+const isDevelopment = process.env.NODE_ENV === 'development';
+//Modify your api.js to add debugging and fallbacks
+// const BASE_URL = process.env.REACT_APP_API_URL_DEPLOY || 
+//                  process.env.REACT_APP_API_URL_LOCAL;
+const BASE_URL = isDevelopment ? 'http://localhost:8000/api/' : 'https://dphish-backend.onrender.com/api/';
 
-// Function to login the user and return the JWT token
+//const BASE_URL = 'https://dphish-backend.onrender.com/api/';
+
+console.log('Base URL:', BASE_URL); // Debugging
+
 export const loginUser = async (username, password) => {
-  const credentials = { username, password };
+  const endpoint = `${BASE_URL}login/`.replace(/([^:]\/)\/+/g, '$1'); // Fix double slashes
+  console.log('Login endpoint:', endpoint); // Debugging
+
+// // Function to login the user and return the JWT token
+// export const loginUser = async (username, password) => {
+   const credentials = { username, password };
 
   try {
     const response = await fetch(`${BASE_URL}login/`, {
@@ -14,16 +26,26 @@ export const loginUser = async (username, password) => {
       body: JSON.stringify(credentials),
     });
 
-    if (!response.ok) {
-      throw new Error('Invalid credentials!');
+    const text = await response.text();
+    
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      throw new Error('Invalid JSON response from server');
     }
 
-    const data = await response.json();
-    const token = data.access_token; // JWT token received
-    const role = data.role; // Role received from backend (either 'admin' or 'user')
-    localStorage.setItem('access_token', token); // Store the token in local storage
-    localStorage.setItem('role', role); // Store the role in local storage
-    // Return the token and role
+    if (!response.ok) {
+      const errorMsg = data?.detail || 'Login failed';
+      throw new Error(errorMsg);
+    }
+
+    const token = data.access_token;
+    const role = data.role;
+
+    localStorage.setItem('access_token', token);
+    localStorage.setItem('role', role);
+
     return { token, role };
   } catch (error) {
     throw new Error(error.message || 'Error logging in!');

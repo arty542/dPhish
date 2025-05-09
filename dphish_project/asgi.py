@@ -11,6 +11,7 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dphish_project.settings')
+settings_module = 'dphish_project.deployment_settings' if 'RENDER_EXTERNAL_HOSTNAME' in os.environ else 'dphish_project.settings'
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
 
 application = get_asgi_application()

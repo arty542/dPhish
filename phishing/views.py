@@ -9,7 +9,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import logging
 
+logger = logging.getLogger(__name__)
+
+def home(request):
+    users = User.objects.values('id', 'username', 'email', 'is_superuser', 'is_staff')
+    return JsonResponse({"users": list(users)})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -17,25 +24,25 @@ def LoginView(request):
     username = request.data.get('username')
     password = request.data.get('password')
 
+    logger.info(f"Login attempt: username={username}")
+
     user = authenticate(username=username, password=password)
+    logger.info(f"Authenticated user: {user}")
 
     if user is not None:
-        # Check if user is an admin or a regular user
         role = 'admin' if user.is_superuser else 'user'
-        
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
+        logger.info(f"Returning token for {username}, role={role}")
         return Response({
             'access_token': access_token,
-            'role': role  # Send role in the response
+            'role': role
         }, status=200)
-    
+
+    logger.info("Login failed: invalid credentials")
     return Response({'detail': 'Invalid credentials!'}, status=401)
 
-import logging
-
-logger = logging.getLogger(__name__)
 
 @permission_classes([AllowAny])
 class SendEmailApiView(APIView):
