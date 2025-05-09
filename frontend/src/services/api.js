@@ -1,11 +1,7 @@
 // src/api.js
 const isDevelopment = process.env.NODE_ENV === 'development';
-//Modify your api.js to add debugging and fallbacks
-// const BASE_URL = process.env.REACT_APP_API_URL_DEPLOY || 
-//                  process.env.REACT_APP_API_URL_LOCAL;
-const BASE_URL = isDevelopment ? 'http://localhost:8000/api/' : 'https://dphish-backend.onrender.com/api/';
+const BASE_URL = isDevelopment ? process.env.REACT_APP_API_URL_LOCAL : process.env.REACT_APP_API_URL_DEPLOY;
 
-//const BASE_URL = 'https://dphish-backend.onrender.com/api/';
 
 console.log('Base URL:', BASE_URL); // Debugging
 
@@ -13,8 +9,6 @@ export const loginUser = async (username, password) => {
   const endpoint = `${BASE_URL}login/`.replace(/([^:]\/)\/+/g, '$1'); // Fix double slashes
   console.log('Login endpoint:', endpoint); // Debugging
 
-// // Function to login the user and return the JWT token
-// export const loginUser = async (username, password) => {
    const credentials = { username, password };
 
   try {
