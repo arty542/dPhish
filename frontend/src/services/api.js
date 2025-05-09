@@ -46,6 +46,42 @@ export const loginUser = async (username, password) => {
   }
 };
 
+export const registerUser = async (username, email, password) => {
+  const endpoint = `${BASE_URL}register/`.replace(/([^:]\/)\/+/g, '$1');
+
+  const payload = { username, email, password };
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      throw new Error('Invalid JSON response from server');
+    }
+
+    if (!response.ok) {
+      const errorMsg = data?.detail || 'Registration failed';
+      throw new Error(errorMsg);
+    }
+
+    const token = data.access_token;
+    const role = data.role;
+
+    return { token, role };
+  } catch (error) {
+    throw new Error(error.message || 'Error registering!');
+  }
+};
+
 export const sendEmail = async (email) => {
   const token = localStorage.getItem('access_token');
 

@@ -1,49 +1,43 @@
 // src/pages/LoginPage.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { loginUser } from '../services/api'; // Adjust the path as needed
 
 const LoginPage = ({ onLogin }) => {
-  const [searchParams]        = useSearchParams();
-  const role                  = searchParams.get('role') || 'user';
-  const [email, setEmail]     = useState('');
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get('role') || 'user';
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]     = useState('');
-  const navigate              = useNavigate();
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (role === 'user') {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const match = users.find(u => u.email === email && u.password === password);
-      if (!match) {
-        setError('Invalid user credentials');
-        return;
-      }
-      onLogin('user');
-      navigate('/dashboard');
-    } else if (role === 'admin') {
-      // hard-coded admin credentials
-      if (email === 'admin@interngov.pk' && password === 'Admin123!') {
-        onLogin('admin');
+    try {
+      const { role } = await loginUser(username, password); // Calls API with username
+      onLogin(role); // Notifies parent (optional)
+      if (role === 'admin') {
         navigate('/admin');
       } else {
-        setError('Invalid admin credentials');
+        navigate('/dashboard');
       }
+    } catch (err) {
+      setError(err.message || 'Login failed');
     }
   };
 
   useEffect(() => {
     setError('');
-    setEmail('');
+    setUsername('');
     setPassword('');
-  }, [role]);
+  }, [roleParam]);
 
   return (
     <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'Arial, sans-serif' }}>
       <h2 style={{ textAlign: 'center' }}>
-        {role === 'admin' ? 'Admin Login' : 'User Login'}
+        {roleParam === 'admin' ? 'Admin Login' : 'User Login'}
       </h2>
 
       {error && (
@@ -54,11 +48,11 @@ const LoginPage = ({ onLogin }) => {
 
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          placeholder="Email address"
+          type="text"
+          placeholder="Username"
           required
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          value={username}
+          onChange={e => setUsername(e.target.value)}
           style={{ width: '100%', padding: 8, margin: '8px 0' }}
         />
         <input
@@ -82,7 +76,7 @@ const LoginPage = ({ onLogin }) => {
             cursor: 'pointer'
           }}
         >
-          {role === 'admin' ? 'Login as Admin' : 'Login'}
+          {roleParam === 'admin' ? 'Login as Admin' : 'Login'}
         </button>
       </form>
     </div>
