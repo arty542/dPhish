@@ -1,6 +1,6 @@
 // src/api.js
 const isDevelopment = process.env.NODE_ENV === 'development';
-const BASE_URL = isDevelopment ? process.env.REACT_APP_API_URL_LOCAL : process.env.REACT_APP_API_URL_DEPLOY;
+const BASE_URL = isDevelopment ? 'http://localhost:8000/api/' : 'https://dphish-backend.onrender.com/api/';
 
 
 console.log('Base URL:', BASE_URL); // Debugging
