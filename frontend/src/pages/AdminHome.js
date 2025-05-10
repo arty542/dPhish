@@ -1,84 +1,58 @@
 // src/pages/AdminHome.js
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { sendEmail } from '../services/api';
+import React, { useEffect, useState } from 'react';
 
 function AdminHome() {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const navigate = useNavigate();
+  const [simulationStatus, setSimulationStatus] = useState('Inactive');
+  const [emailStats, setEmailStats] = useState({});
+  const [recentCampaigns, setRecentCampaigns] = useState([]);
 
-  const handleSendEmail = async () => {
-    try {
-      const data = await sendEmail(email);
-      setMessage(data.message || data.error);
-    } catch (error) {
-      setMessage(error.message);
-    }
-  };
+  useEffect(() => {
+    // Fetch simulation status, email stats, and recent campaigns from API
+    // For demonstration purposes, we mock the data.
+    setSimulationStatus('Active');
+    setEmailStats({
+      sent: 120,
+      opened: 85,
+      clicked: 60,
+    });
+    setRecentCampaigns([
+      { subject: 'Phishing Email #1', date: '2025-05-09' },
+      { subject: 'Phishing Email #2', date: '2025-05-08' },
+    ]);
+  }, []);
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Admin Home</h1>
-
-      <div style={{ marginBottom: 20 }}>
-        <input
-          type="email"
-          placeholder="Recipient Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: '100%',
-            padding: 10,
-            marginBottom: 10,
-            border: '1px solid #ccc',
-            borderRadius: 4,
-          }}
-        />
-        <button
-          onClick={handleSendEmail}
-          style={{
-            width: '100%',
-            padding: 10,
-            backgroundColor: '#007BFF',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            marginBottom: 10,
-          }}
-        >
-          Send Email
-        </button>
-        {message && (
-          <p
-            style={{
-              padding: 10,
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #ddd',
-              borderRadius: 4,
-              color: message.toLowerCase().includes('failed') ? 'red' : 'green',
-            }}
-          >
-            {message}
-          </p>
-        )}
+    <div>
+      <h1>Admin Dashboard</h1>
+      <div>
+        <h2>Simulation Status: {simulationStatus}</h2>
+        {/* Add buttons to control simulation */}
+        <button onClick={() => setSimulationStatus('Active')}>Start Simulation</button>
+        <button onClick={() => setSimulationStatus('Inactive')}>Stop Simulation</button>
       </div>
 
-      <button
-        onClick={() => navigate('/analytics')}
-        style={{
-          width: '100%',
-          padding: 10,
-          backgroundColor: '#28a745',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 4,
-          cursor: 'pointer',
-        }}
-      >
-        Go to Analytics
-      </button>
+      <div>
+        <h2>Email Campaign Stats</h2>
+        <p>Sent: {emailStats.sent}</p>
+        <p>Opened: {emailStats.opened}</p>
+        <p>Clicked: {emailStats.clicked}</p>
+      </div>
+
+      <div>
+        <h2>Recent Email Campaigns</h2>
+        <ul>
+          {recentCampaigns.map((campaign, index) => (
+            <li key={index}>
+              <strong>{campaign.subject}</strong> - {campaign.date}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2>User Reports</h2>
+        {/* Add logic to display user reports */}
+      </div>
     </div>
   );
 }

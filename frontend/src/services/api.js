@@ -101,3 +101,29 @@ export const sendEmail = async (email) => {
     throw new Error('Failed to send email');
   }
 };
+
+
+export const createPhishingEmail = async ({ subject, body, email_type }) => {
+  const token = localStorage.getItem('access_token');
+
+  try {
+    const res = await fetch(`${BASE_URL}create-email/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'role': localStorage.getItem('role'), 
+      },
+      body: JSON.stringify({ subject, body, email_type }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.detail || 'Failed to create email');
+    }
+
+    return await res.json();
+  } catch (error) {
+    throw new Error(error.message || 'Request failed');
+  }
+};

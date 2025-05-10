@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.models import User
 from .models import PhishingEmail, EmailLog, EmailInteraction
 from rest_framework.decorators import api_view, APIView, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -16,17 +16,23 @@ from django.db import connection
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_TABLES = {
+    "auth_user": ["id", "username", "email", "is_active", "date_joined"],  # assuming Django's auth user
+    "phishing_emailinteractions": ["id", "user_id", "email_id", "clicked", "timestamp"],
+    "phishing_phishingemail": ["id", "subject", "sent_at", "is_simulated"],
+    "phishing_tutorial": ["id", "title", "created_at"],
+    "phishing_report": ["id", "user_id", "email_id", "reported_at"]
+}
+
 def home(request):
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
-        tables = [row[0] for row in cursor.fetchall()]
-    
     result = {}
 
-    for table in tables:
+    for table, allowed_columns in ALLOWED_TABLES.items():
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f'SELECT * FROM "{table}" LIMIT 10')  # Limit for safety
+                # Build safe SQL SELECT with only allowed columns
+                columns_sql = ', '.join(f'"{col}"' for col in allowed_columns)
+                cursor.execute(f'SELECT {columns_sql} FROM "{table}" LIMIT 10')
                 columns = [col[0] for col in cursor.description]
                 rows = cursor.fetchall()
                 result[table] = [dict(zip(columns, row)) for row in rows]
@@ -151,3 +157,23 @@ def track_click(request, log_id):
         logger.error(f"Error in track_click for Log ID {log_id}: {str(e)}")
         return redirect("https://your-awareness-page.com")  # Default redirect on error
 
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_phishing_email(request):
+    subject = request.data.get('subject')
+    body = request.data.get('body')
+    email_type = request.data.get('email_type')
+
+    if not all([subject, body, email_type]):
+        return Response({'detail': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        email = PhishingEmail.objects.create(
+            subject=subject,
+            body=body,
+            email_type=email_type
+        )
+        return Response({'message': 'Email created successfully'}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

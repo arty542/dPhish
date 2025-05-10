@@ -5,11 +5,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';  
-import AdminHome from './pages/AdminHome';
+import SendEmail from './pages/SendEmail';  
 import Analytics from './pages/Analytics';
 import Dashboard from './pages/Dashboard';
 import Layout from './components/Layout';
 import NotFound from './pages/NotFound';
+import CreateEmail from './pages/CreateEmails'; 
+import AdminHome from './pages/AdminHome';
 
 function App() {
   const [role, setRole] = useState(null);
@@ -20,7 +22,6 @@ function App() {
 
   return (
     <Routes>
-      {/* Public routes (no navbar) */}
       <Route path="/" element={<Home />} />
       <Route path="/signup" element={<SignupPage onLogin={handleLogin} />} />
       <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
@@ -39,7 +40,7 @@ function App() {
           path="/admin"
           element={
             role === 'admin'
-              ? <AdminHome />
+              ? <AdminHome /> 
               : <Navigate to="/login" replace />
           }
         />
@@ -51,8 +52,22 @@ function App() {
               : <Navigate to="/login" replace />
           }
         />
-
-        {/* public pages */}
+        <Route
+          path="/admin/create-email"
+          element={
+            role === 'admin'
+              ? <CreateEmail />
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/send-email"
+          element={
+            role === 'admin'
+              ? <SendEmail />
+              : <Navigate to="/login" replace />
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
