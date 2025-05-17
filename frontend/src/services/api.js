@@ -90,15 +90,20 @@ export const sendEmail = async (email) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`, 
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ email }),
     });
 
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.detail || 'Failed to send email');
+    }
+
     const data = await response.json();
-    return data; 
+    return data;
   } catch (error) {
-    throw new Error('Failed to send email');
+    throw new Error(error.message || 'Failed to send email');
   }
 };
 

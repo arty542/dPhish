@@ -71,3 +71,6 @@ LOGGING = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Add this with your other production settings
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://dphish-frontend.onrender.com')

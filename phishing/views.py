@@ -9,10 +9,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from rest_framework import status
 import logging
 from django.db import connection
+import re
+import base64
+from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +97,13 @@ def register_user(request):
         'role': 'user'  # You can extend this if you have custom roles
     }, status=status.HTTP_201_CREATED)
 
-
 @permission_classes([AllowAny])
 class SendEmailApiView(APIView):
-    permission_classes = [IsAuthenticated]  # Require authentication for this endpoint
+    permission_classes = [IsAuthenticated]
+
+    def validate_email(self, email):
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return bool(re.match(pattern, email))
 
     def post(self, request):
         try:
@@ -105,36 +112,149 @@ class SendEmailApiView(APIView):
             if not email:
                 return Response({"error": "Email is required"}, status=400)
 
-            # Look up the user
-            user = get_object_or_404(User, email=email)
+            if not self.validate_email(email):
+                return Response({"error": "Invalid email format"}, status=400)
 
-            # Use any existing or new PhishingEmail (here we pick the first one)
-            phishing_email = PhishingEmail.objects.first()
+            # Get the latest phishing email template
+            phishing_email = PhishingEmail.objects.last()
             if not phishing_email:
-                return Response({"error": "No phishing emails found in DB"}, status=500)
+                return Response({"error": "No phishing email template found"}, status=500)
 
-            # Log the sent email
-            email_log = EmailLog.objects.create(user=user, email=phishing_email)
-            logger.info(f"Sent phishing email to {email}, Log ID: {email_log.id}")
+            try:
+                # Look up or create the user
+                user, created = User.objects.get_or_create(
+                    email=email,
+                    defaults={'username': email.split('@')[0]}
+                )
 
-            # Send the actual email with tracking link
-            subject = phishing_email.subject
-            tracking_link = f"http://127.0.0.1:8000/track-click/{email_log.id}/"
-            message = f"{phishing_email.body}\n\nClick the link below:\n{tracking_link}"
-            sender = "your-email@gmail.com"
+                # Log the sent email
+                email_log = EmailLog.objects.create(user=user, email=phishing_email)
+                logger.info(f"Created email log for {email}, Log ID: {email_log.id}")
 
-            send_mail(subject, message, sender, [email])
+                # Create tracking URLs
+                base_url = request.build_absolute_uri('/').rstrip('/')
+                tracking_pixel = f"{base_url}/track-open/{email_log.id}/"
+                phishing_link = f"{base_url}/fake-login/{email_log.id}/"
+                report_link = f"{base_url}/report-phishing/{email_log.id}/"
 
-            logger.info(f"Email sent with tracking link: {tracking_link}")
+                # Create HTML message with tracking pixel and styled links
+                html_message = f"""
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                    </head>
+                    <body>
+                        <!-- Tracking pixel at the top of the email -->
+                        <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
+                        
+                        <!-- Email content -->
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                            {phishing_email.body}
+                            <br/><br/>
+                            <a href="{phishing_link}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Click here to verify</a>
+                            <br/><br/>
+                            <p style="font-size: 12px; color: #666;">
+                                Think this is a phishing email? 
+                                <a href="{report_link}" style="color: #dc3545;">Report it</a>
+                            </p>
+                        </div>
+                        
+                        <!-- Backup tracking pixel at the bottom -->
+                        <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
+                    </body>
+                </html>
+                """
 
-            return Response({
-                "message": "Email sent and tracking initialized!",
-                "tracking_link": tracking_link
-            })
+                # Send the email with both HTML and plain text versions
+                send_mail(
+                    subject=phishing_email.subject,
+                    message=phishing_email.body,  # Plain text version
+                    from_email=settings.EMAIL_HOST_USER,  # Use configured email
+                    recipient_list=[email],
+                    fail_silently=False,
+                    html_message=html_message
+                )
+
+                logger.info(f"Email sent successfully to {email}")
+                return Response({
+                    "message": "Email sent successfully",
+                    "tracking_pixel": tracking_pixel,
+                    "phishing_link": phishing_link,
+                    "report_link": report_link
+                })
+
+            except Exception as e:
+                logger.error(f"Error sending email to {email}: {str(e)}")
+                return Response({
+                    "error": f"Failed to send email: {str(e)}"
+                }, status=500)
 
         except Exception as e:
-            logger.error(f"Error sending email: {str(e)}")
+            logger.error(f"Error in SendEmailApiView: {str(e)}")
             return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def track_open(request, log_id):
+    """Track when an email is opened via the tracking pixel"""
+    try:
+        email_log = get_object_or_404(EmailLog, id=log_id)
+        # Create the interaction only if it doesn't exist
+        EmailInteraction.objects.get_or_create(
+            email_log=email_log,
+            action_type='opened',
+            defaults={'action_time': timezone.now()}
+        )
+        logger.info(f"Email opened: Log ID {log_id}")
+        
+        # Return a 1x1 transparent GIF
+        gif_data = base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+        return HttpResponse(gif_data, content_type='image/gif')
+    except Exception as e:
+        logger.error(f"Error tracking email open: {str(e)}")
+        return HttpResponse(status=204)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def fake_login(request, log_id):
+    """Handle clicks on the phishing link"""
+    try:
+        email_log = get_object_or_404(EmailLog, id=log_id)
+        EmailInteraction.objects.create(
+            email_log=email_log,
+            action_type='clicked'
+        )
+        logger.info(f"Phishing link clicked: Log ID {log_id}")
+        
+        # Get frontend URL from settings with fallback
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        login_url = f"{frontend_url}/login"
+        
+        return redirect(login_url)
+    except Exception as e:
+        logger.error(f"Error tracking link click: {str(e)}")
+        # Use the same URL construction in the error case
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        return redirect(f"{frontend_url}/login")
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def report_phishing(request, log_id):
+    """Handle phishing report submissions"""
+    try:
+        email_log = get_object_or_404(EmailLog, id=log_id)
+        EmailInteraction.objects.create(
+            email_log=email_log,
+            action_type='reported'
+        )
+        logger.info(f"Email reported as phishing: Log ID {log_id}")
+        
+        # Redirect to a thank you page or show a message
+        return redirect('http://localhost:3000/thank-you-report')  # Update with your frontend URL
+    except Exception as e:
+        logger.error(f"Error reporting phishing: {str(e)}")
+        return redirect('http://localhost:3000/thank-you-report')
 
 @csrf_exempt
 def track_click(request, log_id):
@@ -156,7 +276,6 @@ def track_click(request, log_id):
     except Exception as e:
         logger.error(f"Error in track_click for Log ID {log_id}: {str(e)}")
         return redirect("https://your-awareness-page.com")  # Default redirect on error
-
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])

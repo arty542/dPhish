@@ -2,87 +2,120 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sendEmail } from '../services/api';
+import EmailFileUpload from '../components/EmailFileUpload';
 
 function SendEmail() {
-  const [email, setEmail] = useState("");
+  const [emails, setEmails] = useState([]);
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState({ sent: 0, total: 0 });
   const navigate = useNavigate();
 
-  const handleSendEmail = async () => {
-    if (!email) {
-      setMessage("Please enter an email address.");
+  const handleEmailsLoaded = (loadedEmails) => {
+    setEmails(loadedEmails);
+    setMessage(`Loaded ${loadedEmails.length} email addresses`);
+  };
+
+  const handleSendEmails = async () => {
+    if (emails.length === 0) {
+      setMessage("Please upload a file with email addresses first.");
       return;
     }
 
-    try {
-      const data = await sendEmail(email); // Call your API function here
-      setMessage(data.message || data.error);
-    } catch (error) {
-      setMessage(error.message || "An error occurred while sending the email.");
+    setSending(true);
+    setProgress({ sent: 0, total: emails.length });
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (let i = 0; i < emails.length; i++) {
+      try {
+        await sendEmail(emails[i]);
+        successCount++;
+      } catch (error) {
+        failureCount++;
+        console.error(`Failed to send to ${emails[i]}: ${error.message}`);
+      }
+      setProgress({ sent: i + 1, total: emails.length });
     }
+
+    setSending(false);
+    setMessage(`Completed: ${successCount} sent successfully, ${failureCount} failed`);
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Send Phishing Email</h1>
-
-      <div style={{ marginBottom: 20 }}>
-        <input
-          type="email"
-          placeholder="Recipient Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: '100%',
-            padding: 10,
-            marginBottom: 10,
-            border: '1px solid #ccc',
-            borderRadius: 4,
-          }}
-        />
-        <button
-          onClick={handleSendEmail}
-          style={{
-            width: '100%',
-            padding: 10,
-            backgroundColor: '#007BFF',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            marginBottom: 10,
-          }}
-        >
-          Send Email
-        </button>
-        {message && (
-          <p
-            style={{
-              padding: 10,
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #ddd',
-              borderRadius: 4,
-              color: message.toLowerCase().includes('failed') ? 'red' : 'green',
-            }}
-          >
-            {message}
-          </p>
-        )}
+    <div style={{ maxWidth: 600, margin: '50px auto', padding: '0 20px' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>Send Phishing Emails</h1>
+      
+      <div style={{ marginBottom: '20px' }}>
+        <h3>Upload Email List</h3>
+        <p>Upload a CSV or text file containing one email address per line.</p>
+        <EmailFileUpload onEmailsLoaded={handleEmailsLoaded} />
       </div>
 
+      {emails.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <h3>Loaded Emails: {emails.length}</h3>
+          <div style={{ 
+            maxHeight: '150px', 
+            overflowY: 'auto', 
+            border: '1px solid #ccc', 
+            padding: '10px',
+            borderRadius: '4px'
+          }}>
+            {emails.map((email, index) => (
+              <div key={index}>{email}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {message && (
+        <div style={{ 
+          padding: '10px', 
+          marginBottom: '20px',
+          backgroundColor: message.includes('failed') ? '#ffe6e6' : '#e6ffe6',
+          borderRadius: '4px'
+        }}>
+          {message}
+        </div>
+      )}
+
+      {sending && (
+        <div style={{ marginBottom: '20px' }}>
+          <div>Progress: {progress.sent} / {progress.total}</div>
+          <div style={{ 
+            width: '100%', 
+            height: '20px', 
+            backgroundColor: '#f0f0f0',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            marginTop: '10px'
+          }}>
+            <div style={{
+              width: `${(progress.sent / progress.total) * 100}%`,
+              height: '100%',
+              backgroundColor: '#4CAF50',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+        </div>
+      )}
+
       <button
-        onClick={() => navigate('/analytics')}
+        onClick={handleSendEmails}
+        disabled={sending || emails.length === 0}
         style={{
           width: '100%',
-          padding: 10,
-          backgroundColor: '#28a745',
-          color: '#fff',
+          padding: '12px',
+          backgroundColor: sending || emails.length === 0 ? '#cccccc' : '#4CAF50',
+          color: 'white',
           border: 'none',
-          borderRadius: 4,
-          cursor: 'pointer',
+          borderRadius: '4px',
+          cursor: sending || emails.length === 0 ? 'not-allowed' : 'pointer',
+          fontSize: '16px'
         }}
       >
-        Go to Analytics
+        {sending ? 'Sending...' : 'Send Emails'}
       </button>
     </div>
   );

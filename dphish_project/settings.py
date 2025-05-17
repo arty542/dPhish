@@ -172,3 +172,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Add this near your other environment-specific settings
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
