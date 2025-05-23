@@ -12,6 +12,7 @@ import Layout from './components/Layout';
 import NotFound from './pages/NotFound';
 import CreateEmail from './pages/CreateEmails'; 
 import AdminHome from './pages/AdminHome';
+import Tutorial from './pages/Tutorial';
 
 function App() {
   const [role, setRole] = useState(null);
@@ -25,6 +26,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/signup" element={<SignupPage onLogin={handleLogin} />} />
       <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+      <Route path="/tutorial" element={<Tutorial />} />
 
       {/* All other routes get the navbar */}
       <Route element={<Layout />}>

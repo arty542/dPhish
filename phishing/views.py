@@ -1,7 +1,7 @@
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.models import User
-from .models import PhishingEmail, EmailLog, EmailInteraction, SimulationSession, TargetEmail, SimulationReport
+from .models import PhishingEmail, EmailLog, EmailInteraction, SimulationSession, TargetEmail, SimulationReport, Tutorial
 from rest_framework.decorators import api_view, APIView, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.permissions import IsAuthenticated
@@ -239,14 +239,14 @@ def fake_login(request, log_id):
         
         # Get frontend URL from settings with fallback
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        login_url = f"{frontend_url}/signup"
+        login_url = f"{frontend_url}/tutorial"
         
         return redirect(login_url)
     except Exception as e:
         logger.error(f"Error tracking link click: {str(e)}")
         # Use the same URL construction in the error case
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        return redirect(f"{frontend_url}/signup")
+        return redirect(f"{frontend_url}/tutorial")
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -496,3 +496,17 @@ def generate_report(request):
         })
     except SimulationSession.DoesNotExist:
         return Response({'error': 'Simulation not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_tutorial(request, email_type):
+    """Get tutorial content for a specific email type"""
+    try:
+        tutorial = Tutorial.objects.get(email_type=email_type)
+        return Response({
+            'title': tutorial.title,
+            'content': tutorial.content,
+            'email_type': tutorial.email_type
+        })
+    except Tutorial.DoesNotExist:
+        return Response({'error': 'Tutorial not found'}, status=status.HTTP_404_NOT_FOUND)

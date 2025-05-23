@@ -13,7 +13,8 @@ from .views import (
     stop_simulation,
     add_target_emails,
     update_email_status,
-    generate_report
+    generate_report,
+    get_tutorial
 )
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
     path('api/simulation/add-emails/', add_target_emails, name='add_target_emails'),
     path('api/simulation/update-status/', update_email_status, name='update_email_status'),
     path('api/simulation/generate-report/', generate_report, name='generate_report'),
+    path('api/tutorial/', get_tutorial, name='get_tutorial'),
 ]
