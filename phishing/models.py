@@ -53,3 +53,38 @@ class Report(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - Score: {self.score}"
+
+
+class SimulationSession(models.Model):
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Simulation {self.id} - {'Active' if self.is_active else 'Inactive'}"
+
+
+class TargetEmail(models.Model):
+    email = models.EmailField(unique=True)
+    simulation = models.ForeignKey(SimulationSession, on_delete=models.CASCADE)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    clicked_at = models.DateTimeField(null=True, blank=True)
+    reported_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.email
+
+
+class SimulationReport(models.Model):
+    simulation = models.ForeignKey(SimulationSession, on_delete=models.CASCADE)
+    generated_at = models.DateTimeField(auto_now_add=True)
+    total_emails = models.IntegerField(default=0)
+    opened_emails = models.IntegerField(default=0)
+    clicked_emails = models.IntegerField(default=0)
+    reported_emails = models.IntegerField(default=0)
+    report_data = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"Report for Simulation {self.simulation.id}"

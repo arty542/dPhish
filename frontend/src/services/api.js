@@ -132,3 +132,98 @@ export const createPhishingEmail = async ({ subject, body, email_type }) => {
     throw new Error(error.message || 'Request failed');
   }
 };
+
+export const startSimulation = async () => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`${BASE_URL}simulation/start/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to start simulation');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || 'Failed to start simulation');
+  }
+};
+
+export const stopSimulation = async (simulationId) => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`${BASE_URL}simulation/stop/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ simulation_id: simulationId }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to stop simulation');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || 'Failed to stop simulation');
+  }
+};
+
+export const addTargetEmails = async (simulationId, emails) => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`${BASE_URL}simulation/add-emails/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ simulation_id: simulationId, emails }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to add target emails');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || 'Failed to add target emails');
+  }
+};
+
+export const updateEmailStatus = async (email, status) => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`${BASE_URL}simulation/update-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email, status }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update email status');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || 'Failed to update email status');
+  }
+};
+
+export const generateReport = async (simulationId) => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`${BASE_URL}simulation/generate-report/?simulation_id=${simulationId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to generate report');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(error.message || 'Failed to generate report');
+  }
+};

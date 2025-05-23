@@ -1,7 +1,7 @@
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.models import User
-from .models import PhishingEmail, EmailLog, EmailInteraction
+from .models import PhishingEmail, EmailLog, EmailInteraction, SimulationSession, TargetEmail, SimulationReport
 from rest_framework.decorators import api_view, APIView, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +17,8 @@ import re
 import base64
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Count
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -137,15 +139,17 @@ class SendEmailApiView(APIView):
                 phishing_link = f"{base_url}/fake-login/{email_log.id}/"
                 report_link = f"{base_url}/report-phishing/{email_log.id}/"
 
-                # Create HTML message with tracking pixel and styled links
+                # Create HTML message with multiple tracking pixels and styled links
                 html_message = f"""
                 <!DOCTYPE html>
                 <html>
                     <head>
                         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
                     </head>
                     <body>
-                        <!-- Tracking pixel at the top of the email -->
+                        <!-- Multiple tracking pixels for better tracking -->
+                        <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
                         <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
                         
                         <!-- Email content -->
@@ -160,7 +164,8 @@ class SendEmailApiView(APIView):
                             </p>
                         </div>
                         
-                        <!-- Backup tracking pixel at the bottom -->
+                        <!-- More tracking pixels -->
+                        <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
                         <img src="{tracking_pixel}" alt="" width="1" height="1" style="display:none !important;" />
                     </body>
                 </html>
@@ -170,7 +175,7 @@ class SendEmailApiView(APIView):
                 send_mail(
                     subject=phishing_email.subject,
                     message=phishing_email.body,  # Plain text version
-                    from_email=settings.EMAIL_HOST_USER,  # Use configured email
+                    from_email=settings.EMAIL_HOST_USER,
                     recipient_list=[email],
                     fail_silently=False,
                     html_message=html_message
@@ -200,17 +205,22 @@ def track_open(request, log_id):
     """Track when an email is opened via the tracking pixel"""
     try:
         email_log = get_object_or_404(EmailLog, id=log_id)
-        # Create the interaction only if it doesn't exist
-        EmailInteraction.objects.get_or_create(
+        
+        # Always create a new interaction for opens
+        EmailInteraction.objects.create(
             email_log=email_log,
             action_type='opened',
-            defaults={'action_time': timezone.now()}
+            action_time=timezone.now()
         )
         logger.info(f"Email opened: Log ID {log_id}")
         
-        # Return a 1x1 transparent GIF
+        # Return a 1x1 transparent GIF with cache control headers
         gif_data = base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
-        return HttpResponse(gif_data, content_type='image/gif')
+        response = HttpResponse(gif_data, content_type='image/gif')
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
     except Exception as e:
         logger.error(f"Error tracking email open: {str(e)}")
         return HttpResponse(status=204)
@@ -229,14 +239,14 @@ def fake_login(request, log_id):
         
         # Get frontend URL from settings with fallback
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        login_url = f"{frontend_url}/login"
+        login_url = f"{frontend_url}/signup"
         
         return redirect(login_url)
     except Exception as e:
         logger.error(f"Error tracking link click: {str(e)}")
         # Use the same URL construction in the error case
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        return redirect(f"{frontend_url}/login")
+        return redirect(f"{frontend_url}/signup")
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -296,3 +306,193 @@ def create_phishing_email(request):
         return Response({'message': 'Email created successfully'}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_simulation(request):
+    # End any existing active simulations
+    SimulationSession.objects.filter(is_active=True).update(
+        is_active=False,
+        end_time=timezone.now()
+    )
+    
+    # Create new simulation session
+    simulation = SimulationSession.objects.create(
+        created_by=request.user
+    )
+    
+    return Response({
+        'simulation_id': simulation.id,
+        'start_time': simulation.start_time
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def stop_simulation(request):
+    simulation_id = request.data.get('simulation_id')
+    try:
+        simulation = SimulationSession.objects.get(id=simulation_id, is_active=True)
+        simulation.is_active = False
+        simulation.end_time = timezone.now()
+        simulation.save()
+        
+        return Response({'status': 'success'})
+    except SimulationSession.DoesNotExist:
+        return Response({'error': 'No active simulation found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_target_emails(request):
+    simulation_id = request.data.get('simulation_id')
+    emails = request.data.get('emails', [])
+    
+    try:
+        simulation = SimulationSession.objects.get(id=simulation_id, is_active=True)
+        
+        # Create TargetEmail objects for each email
+        target_emails = []
+        for email in emails:
+            # Create or get user for the email
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={'username': email.split('@')[0]}
+            )
+            
+            # Create target email
+            target_email = TargetEmail.objects.create(
+                email=email,
+                simulation=simulation,
+                user=user
+            )
+            target_emails.append(target_email)
+            
+            # Create initial email log and interaction
+            email_log = EmailLog.objects.create(
+                user=user,
+                email=PhishingEmail.objects.last()  # Get the latest phishing email template
+            )
+            
+            EmailInteraction.objects.create(
+                email_log=email_log,
+                action_type='created',
+                action_time=timezone.now()
+            )
+        
+        return Response({
+            'status': 'success',
+            'emails_added': len(emails),
+            'target_emails': [{'email': te.email, 'id': te.id} for te in target_emails]
+        })
+    except SimulationSession.DoesNotExist:
+        return Response({'error': 'No active simulation found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_email_status(request):
+    email = request.data.get('email')
+    status_type = request.data.get('status')  # 'opened', 'clicked', or 'reported'
+    
+    try:
+        target_email = TargetEmail.objects.get(email=email)
+        if not target_email.simulation.is_active:
+            return Response({'error': 'Simulation is not active'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Update TargetEmail status
+        if status_type == 'opened':
+            target_email.opened_at = timezone.now()
+        elif status_type == 'clicked':
+            target_email.clicked_at = timezone.now()
+        elif status_type == 'reported':
+            target_email.reported_at = timezone.now()
+        target_email.save()
+        
+        # Create EmailInteraction record
+        email_log = EmailLog.objects.filter(user=target_email.user).latest('sent_at')
+        EmailInteraction.objects.create(
+            email_log=email_log,
+            action_type=status_type,
+            action_time=timezone.now()
+        )
+        
+        return Response({'status': 'success'})
+    except TargetEmail.DoesNotExist:
+        return Response({'error': 'Email not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generate_report(request):
+    simulation_id = request.query_params.get('simulation_id')
+    
+    try:
+        simulation = SimulationSession.objects.get(id=simulation_id)
+        
+        # Get all email logs for this simulation period
+        email_logs = EmailLog.objects.filter(
+            sent_at__gte=simulation.start_time,
+            sent_at__lte=simulation.end_time if simulation.end_time else timezone.now()
+        )
+        
+        # Get all interactions for these email logs
+        interactions = EmailInteraction.objects.filter(email_log__in=email_logs)
+        
+        # Calculate statistics
+        total_emails = email_logs.count()
+        opened_emails = interactions.filter(action_type='opened').count()
+        clicked_emails = interactions.filter(action_type='clicked').count()
+        reported_emails = interactions.filter(action_type='reported').count()
+        
+        # Calculate time-based metrics
+        first_interaction = interactions.order_by('action_time').first()
+        last_interaction = interactions.order_by('-action_time').first()
+        
+        # Format datetime objects for JSON serialization
+        start_time = simulation.start_time.isoformat() if simulation.start_time else None
+        end_time = simulation.end_time.isoformat() if simulation.end_time else None
+        duration = (simulation.end_time - simulation.start_time).total_seconds() if simulation.end_time else None
+        first_interaction_time = first_interaction.action_time.isoformat() if first_interaction else None
+        last_interaction_time = last_interaction.action_time.isoformat() if last_interaction else None
+        
+        # Format interaction timeline
+        interaction_timeline = [
+            {
+                'action_type': interaction.action_type,
+                'action_time': interaction.action_time.isoformat()
+            }
+            for interaction in interactions.order_by('action_time')
+        ]
+        
+        # Format email types
+        email_types = list(email_logs.values('email__email_type').annotate(count=Count('id')))
+        
+        report_data = {
+            'start_time': start_time,
+            'end_time': end_time,
+            'duration': duration,
+            'success_rate': (clicked_emails / total_emails * 100) if total_emails > 0 else 0,
+            'report_rate': (reported_emails / total_emails * 100) if total_emails > 0 else 0,
+            'first_interaction': first_interaction_time,
+            'last_interaction': last_interaction_time,
+            'interaction_timeline': interaction_timeline,
+            'email_types': email_types
+        }
+        
+        # Create report
+        report = SimulationReport.objects.create(
+            simulation=simulation,
+            total_emails=total_emails,
+            opened_emails=opened_emails,
+            clicked_emails=clicked_emails,
+            reported_emails=reported_emails,
+            report_data=report_data
+        )
+        
+        return Response({
+            'report_id': report.id,
+            'total_emails': total_emails,
+            'opened_emails': opened_emails,
+            'clicked_emails': clicked_emails,
+            'reported_emails': reported_emails,
+            'report_data': report_data
+        })
+    except SimulationSession.DoesNotExist:
+        return Response({'error': 'Simulation not found'}, status=status.HTTP_404_NOT_FOUND)
